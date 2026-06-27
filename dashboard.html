@@ -80,11 +80,12 @@
     }
     .sub { color: var(--muted); font: 600 17px/1.6 system-ui, sans-serif; max-width: 62ch; }
     .metrics { display: grid; grid-template-columns: repeat(2, 1fr); border: 3px solid var(--line); align-self: stretch; }
-    .metric { padding: 16px; border-right: 3px solid var(--line); border-bottom: 3px solid var(--line); }
+    .metric { min-width: 0; padding: 16px; border-right: 3px solid var(--line); border-bottom: 3px solid var(--line); }
     .metric:nth-child(2n) { border-right: 0; }
     .metric:nth-last-child(-n+2) { border-bottom: 0; }
     .metric span { display: block; color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 900; }
-    .metric strong { display: block; margin-top: 8px; font-size: 34px; }
+    .metric strong { display: block; min-width: 0; margin-top: 8px; font-size: clamp(24px, 3.4vw, 34px); line-height: 1.05; overflow-wrap: anywhere; }
+    #lastLogin { white-space: nowrap; font-size: clamp(21px, 2.8vw, 30px); }
     .panel { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; margin-bottom: 16px; }
     .status { color: var(--muted); font: 650 14px/1.5 system-ui, sans-serif; }
     .table-wrap { overflow: hidden; }
@@ -92,7 +93,7 @@
     th, td { padding: 14px; border-bottom: 2px solid var(--line); text-align: left; vertical-align: top; }
     th { background: var(--accent); font-size: 12px; text-transform: uppercase; }
     tr:last-child td { border-bottom: 0; }
-    td { font: 650 14px/1.45 system-ui, sans-serif; }
+    td { font: 650 14px/1.45 system-ui, sans-serif; overflow-wrap: anywhere; }
     .email { font-family: inherit; font-weight: 900; }
     .empty { padding: 36px; text-align: center; color: var(--muted); }
     body.auth-required .app { min-height: 100dvh; display: grid; place-items: center; }
@@ -111,6 +112,17 @@
       .metric, .metric:nth-child(2n), .metric:nth-last-child(-n+2) { border-right: 0; border-bottom: 3px solid var(--line); }
       .metric:last-child { border-bottom: 0; }
       th:nth-child(4), td:nth-child(4) { display: none; }
+    }
+    @media (max-width: 430px) {
+      :root { --shadow: 6px 6px 0 #050505; }
+      .app { width: min(100vw - 20px, 1180px); padding-top: 10px; }
+      .topbar, .hero, .panel, .table-wrap { border-width: 2px; }
+      .hero { padding: 16px; }
+      h1 { font-size: clamp(38px, 14vw, 54px); }
+      .metric { padding: 12px; }
+      .metric strong { font-size: clamp(22px, 9vw, 30px); }
+      #lastLogin { font-size: clamp(20px, 7vw, 27px); }
+      th, td { padding: 11px 10px; }
     }
   </style>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -194,10 +206,19 @@
     }
     function auth() { return app().auth(); }
     function db() { return app().firestore(); }
-    function whenText(iso) {
-      if (!iso) return '-';
-      const date = new Date(iso);
-      return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
+    function dateFrom(value) {
+      if (!value) return null;
+      const date = typeof value?.toDate === 'function' ? value.toDate() : new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function whenText(value) {
+      const date = dateFrom(value);
+      return date ? `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}` : '-';
+    }
+    function shortWhenText(value) {
+      const date = dateFrom(value);
+      return date ? `${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}` : '-';
     }
     async function signIn() {
       if (location.protocol === 'file:') { location.href = 'https://mainn6.github.io/jeff-repo-leaderboard/dashboard.html'; return; }
@@ -219,7 +240,7 @@
       els.totalEvents.textContent = events.length;
       els.uniqueEmails.textContent = new Set(events.map(event => event.email).filter(Boolean)).size;
       els.todayEvents.textContent = events.filter(event => String(event.signedInAt || '').startsWith(today)).length;
-      els.lastLogin.textContent = whenText(events[0]?.signedInAt);
+      els.lastLogin.textContent = shortWhenText(events[0]?.signedInAt);
       els.tableStatus.textContent = events.length ? `${events.length} events loaded.` : 'No login events yet.';
       els.eventsBody.innerHTML = events.length
         ? events.map(event => `<tr>
