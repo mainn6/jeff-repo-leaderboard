@@ -458,6 +458,34 @@
       font-size: 12px;
       font-weight: 800;
     }
+    body.auth-required .app {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 28px 0;
+    }
+    body.auth-required .auth-strip {
+      width: min(560px, 100%);
+      align-items: flex-start;
+      flex-direction: column;
+      margin: 0;
+      padding: 28px;
+      background: #ffdc4a;
+    }
+    body.auth-required .auth-copy { gap: 10px; }
+    body.auth-required .auth-copy span { font-size: 13px; }
+    body.auth-required .auth-copy strong { font-size: 22px; }
+    body.auth-required .auth-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+    body.auth-required #googleSignIn,
+    body.auth-required #googleSignIn .auth-button { width: 100%; }
+    body.auth-required .hero,
+    body.auth-required .controls,
+    body.auth-required .layout {
+      display: none;
+    }
     @media (max-width: 980px) {
       .app { width: min(100vw - 20px, 760px); padding-top: 10px; }
       .hero, .layout, .controls { grid-template-columns: 1fr; }
@@ -487,7 +515,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 </head>
-<body>
+<body class="auth-required">
   <main class="app">
     <section class="auth-strip" aria-label="Google email login">
       <div class="auth-copy">
@@ -641,6 +669,7 @@
     function renderAuth(user) {
       if (!els.authStatus) return;
       const configured = googleClientConfigured();
+      document.body.classList.toggle('auth-required', !user?.email);
       els.googleSignIn.hidden = !configured || Boolean(user?.email);
       els.signOut.hidden = !user?.email;
       els.authUser.hidden = !user?.email;
@@ -658,6 +687,7 @@
       els.authUser.innerHTML = '';
     }
     async function signInWithGoogle() {
+      if (location.protocol === 'file:') { location.href = 'https://mainn6.github.io/jeff-repo-leaderboard/'; return; }
       const auth = firebaseAuth();
       if (!auth) {
         els.authStatus.textContent = 'Firebase Auth is still loading. Try again.';
