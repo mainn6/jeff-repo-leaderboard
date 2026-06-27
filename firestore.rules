@@ -1,6 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admin/$(request.auth.token.email));
+    }
+
     match /admin/{email} {
       allow read: if request.auth != null && request.auth.token.email == email;
       allow write: if false;
@@ -14,7 +19,8 @@ service cloud.firestore {
     match /loginEvents/{eventId} {
       allow create: if request.auth != null
         && request.resource.data.email == request.auth.token.email;
-      allow read, update, delete: if false;
+      allow read: if isAdmin();
+      allow update, delete: if false;
     }
 
     match /{document=**} {

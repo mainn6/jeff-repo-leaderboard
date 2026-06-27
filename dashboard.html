@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Repo Leaderboard Dashboard</title>
+  <style>
+    @font-face {
+      font-family: 'Departure Mono';
+      src: local('Departure Mono'), local('Courier New');
+      font-display: swap;
+    }
+    :root {
+      --paper: #fff;
+      --soft: #f4f4f1;
+      --ink: #050505;
+      --muted: #666;
+      --line: #050505;
+      --accent: #ffdc4a;
+      --green: #c6f6d5;
+      --shadow: 10px 10px 0 #050505;
+      font-family: 'Departure Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--soft);
+      color: var(--ink);
+      font-family: 'Departure Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .app {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 18px 0 48px;
+    }
+    .topbar, .hero, .panel, .table-wrap {
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      background: var(--green);
+    }
+    .brand { font-weight: 900; text-transform: uppercase; }
+    .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .button, select {
+      min-height: 38px;
+      border: 2px solid var(--line);
+      border-radius: 6px;
+      background: var(--paper);
+      color: var(--ink);
+      padding: 0 12px;
+      font: inherit;
+      font-weight: 900;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr);
+      gap: 18px;
+      padding: 26px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(44px, 8vw, 98px);
+      line-height: .9;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .sub { color: var(--muted); font: 600 17px/1.6 system-ui, sans-serif; max-width: 62ch; }
+    .metrics { display: grid; grid-template-columns: repeat(2, 1fr); border: 3px solid var(--line); align-self: stretch; }
+    .metric { padding: 16px; border-right: 3px solid var(--line); border-bottom: 3px solid var(--line); }
+    .metric:nth-child(2n) { border-right: 0; }
+    .metric:nth-last-child(-n+2) { border-bottom: 0; }
+    .metric span { display: block; color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 900; }
+    .metric strong { display: block; margin-top: 8px; font-size: 34px; }
+    .panel { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; margin-bottom: 16px; }
+    .status { color: var(--muted); font: 650 14px/1.5 system-ui, sans-serif; }
+    .table-wrap { overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; background: var(--paper); }
+    th, td { padding: 14px; border-bottom: 2px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--accent); font-size: 12px; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    td { font: 650 14px/1.45 system-ui, sans-serif; }
+    .email { font-family: inherit; font-weight: 900; }
+    .empty { padding: 36px; text-align: center; color: var(--muted); }
+    body.auth-required .app { min-height: 100dvh; display: grid; place-items: center; }
+    body.auth-required .topbar {
+      width: min(560px, 100%);
+      display: grid;
+      align-items: start;
+      background: var(--accent);
+      padding: 28px;
+      margin: 0;
+    }
+    body.auth-required .hero, body.auth-required .panel, body.auth-required .table-wrap { display: none; }
+    @media (max-width: 780px) {
+      .hero { grid-template-columns: 1fr; padding: 20px; }
+      .metrics { grid-template-columns: 1fr; }
+      .metric, .metric:nth-child(2n), .metric:nth-last-child(-n+2) { border-right: 0; border-bottom: 3px solid var(--line); }
+      .metric:last-child { border-bottom: 0; }
+      th:nth-child(4), td:nth-child(4) { display: none; }
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="auth-required">
+  <main class="app">
+    <section class="topbar" aria-label="Dashboard auth">
+      <div>
+        <div class="brand">JEFF repo dashboard</div>
+        <div class="status" id="status">Sign in with the admin Google account.</div>
+      </div>
+      <div class="actions">
+        <a class="button" href="./index.html">Leaderboard</a>
+        <button class="button" id="googleSignIn" type="button">Continue with Google</button>
+        <button class="button" id="signOut" type="button" hidden>Sign out</button>
+      </div>
+    </section>
+
+    <section class="hero">
+      <div>
+        <h1>Login Dashboard</h1>
+        <p class="sub">Google 로그인 이벤트를 Firestore에서 읽어 최근 접속자와 페이지 정보를 확인합니다.</p>
+      </div>
+      <div class="metrics">
+        <div class="metric"><span>Total events</span><strong id="totalEvents">0</strong></div>
+        <div class="metric"><span>Unique emails</span><strong id="uniqueEmails">0</strong></div>
+        <div class="metric"><span>Today</span><strong id="todayEvents">0</strong></div>
+        <div class="metric"><span>Last login</span><strong id="lastLogin">-</strong></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="status" id="tableStatus">Loading events...</div>
+      <select id="limitSelect" aria-label="Event limit">
+        <option value="50">Last 50</option>
+        <option value="100" selected>Last 100</option>
+        <option value="200">Last 200</option>
+      </select>
+    </section>
+
+    <section class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Email</th><th>Name</th><th>Signed in</th><th>Page</th></tr>
+        </thead>
+        <tbody id="eventsBody"><tr><td colspan="4" class="empty">No events yet.</td></tr></tbody>
+      </table>
+    </section>
+  </main>
+  <script>
+    const FIREBASE_CONFIG = {
+      apiKey: 'AIzaSyDJbRrEsRpCJkmM4hmtVcIVY1oR-U4TkNw',
+      authDomain: 'masang-3446d.firebaseapp.com',
+      projectId: 'masang-3446d',
+      storageBucket: 'masang-3446d.firebasestorage.app',
+      messagingSenderId: '171338423650',
+      appId: '1:171338423650:web:e80fe23c8da618b60da03b',
+      measurementId: 'G-WBY1FX730M'
+    };
+    const els = {
+      status: document.getElementById('status'),
+      tableStatus: document.getElementById('tableStatus'),
+      googleSignIn: document.getElementById('googleSignIn'),
+      signOut: document.getElementById('signOut'),
+      limitSelect: document.getElementById('limitSelect'),
+      totalEvents: document.getElementById('totalEvents'),
+      uniqueEmails: document.getElementById('uniqueEmails'),
+      todayEvents: document.getElementById('todayEvents'),
+      lastLogin: document.getElementById('lastLogin'),
+      eventsBody: document.getElementById('eventsBody')
+    };
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function app() {
+      if (!window.firebase.apps.length) window.firebase.initializeApp(FIREBASE_CONFIG);
+      return window.firebase;
+    }
+    function auth() { return app().auth(); }
+    function db() { return app().firestore(); }
+    function whenText(iso) {
+      if (!iso) return '-';
+      const date = new Date(iso);
+      return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
+    }
+    async function signIn() {
+      if (location.protocol === 'file:') { location.href = 'https://mainn6.github.io/jeff-repo-leaderboard/dashboard.html'; return; }
+      const provider = new window.firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await auth().signInWithPopup(provider);
+    }
+    async function loadEvents(user) {
+      els.tableStatus.textContent = 'Checking admin access...';
+      const adminDoc = await db().collection('admin').doc(user.email).get();
+      if (!adminDoc.exists) {
+        els.tableStatus.textContent = 'No dashboard access for this email.';
+        els.eventsBody.innerHTML = '<tr><td colspan="4" class="empty">관리자 계정으로 로그인해야 합니다.</td></tr>';
+        return;
+      }
+      const limit = Number(els.limitSelect.value || 100);
+      const snap = await db().collection('loginEvents').orderBy('signedInAt', 'desc').limit(limit).get();
+      const events = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const today = new Date().toISOString().slice(0, 10);
+      els.totalEvents.textContent = events.length;
+      els.uniqueEmails.textContent = new Set(events.map(event => event.email).filter(Boolean)).size;
+      els.todayEvents.textContent = events.filter(event => String(event.signedInAt || '').startsWith(today)).length;
+      els.lastLogin.textContent = whenText(events[0]?.signedInAt);
+      els.tableStatus.textContent = events.length ? `${events.length} events loaded.` : 'No login events yet.';
+      els.eventsBody.innerHTML = events.length
+        ? events.map(event => `<tr>
+            <td class="email">${esc(event.email)}</td>
+            <td>${esc(event.name || '-')}</td>
+            <td>${esc(whenText(event.signedInAt))}</td>
+            <td>${esc(event.page || '-')}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="4" class="empty">No events yet.</td></tr>';
+    }
+    auth().onAuthStateChanged(async user => {
+      document.body.classList.toggle('auth-required', !user?.email);
+      els.googleSignIn.hidden = Boolean(user?.email);
+      els.signOut.hidden = !user?.email;
+      if (!user?.email) { els.status.textContent = 'Sign in with the admin Google account.'; return; }
+      els.status.textContent = `Signed in as ${user.email}`;
+      try { await loadEvents(user); }
+      catch (error) {
+        console.warn(error);
+        els.tableStatus.textContent = 'Dashboard failed to load.';
+        els.eventsBody.innerHTML = '<tr><td colspan="4" class="empty">Firestore 권한이나 네트워크를 확인하세요.</td></tr>';
+      }
+    });
+    els.googleSignIn.addEventListener('click', signIn);
+    els.signOut.addEventListener('click', () => auth().signOut());
+    els.limitSelect.addEventListener('change', () => auth().currentUser && loadEvents(auth().currentUser));
+  </script>
+</body>
+</html>

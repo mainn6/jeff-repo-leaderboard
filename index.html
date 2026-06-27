@@ -449,6 +449,9 @@
       white-space: nowrap;
     }
     .auth-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       min-height: 40px;
       padding: 0 12px;
       border: 2px solid var(--line);
@@ -457,6 +460,7 @@
       color: var(--text);
       font-size: 12px;
       font-weight: 800;
+      text-decoration: none;
     }
     body.auth-required .app {
       min-height: 100dvh;
@@ -526,6 +530,7 @@
       <div class="auth-actions">
         <div class="auth-user" id="authUser" hidden></div>
         <div id="googleSignIn"></div>
+        <a class="auth-button" id="dashboardLink" href="./dashboard.html" hidden>Dashboard</a>
         <button class="auth-button" id="signOut" type="button" hidden>Sign out</button>
       </div>
     </section>
@@ -606,6 +611,7 @@
       authStatus: document.getElementById('authStatus'),
       authUser: document.getElementById('authUser'),
       googleSignIn: document.getElementById('googleSignIn'),
+      dashboardLink: document.getElementById('dashboardLink'),
       signOut: document.getElementById('signOut'),
       repoCount: document.getElementById('repoCount'),
       categoryCount: document.getElementById('categoryCount'),
@@ -723,6 +729,7 @@
       els.googleSignIn.hidden = !configured || Boolean(user?.email);
       els.signOut.hidden = !user?.email;
       els.authUser.hidden = !user?.email;
+      els.dashboardLink.hidden = !user?.email;
       if (!configured) {
         els.authStatus.textContent = 'Google OAuth client ID needed. Replace GOOGLE_CLIENT_ID in this file.';
         els.googleSignIn.innerHTML = '';
