@@ -848,9 +848,6 @@
     function isInAppBrowser() {
       return /Twitter|FBAN|FBAV|Instagram|KAKAOTALK|Line|MicroMessenger/i.test(navigator.userAgent);
     }
-    function isMobileBrowser() {
-      return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    }
     function userFromProfile(profile) {
       return {
         uid: profile.uid,
@@ -988,10 +985,6 @@
       provider.setCustomParameters({ prompt: 'select_account' });
       try {
         els.authStatus.textContent = t('auth.opening');
-        if (isMobileBrowser()) {
-          await auth.signInWithRedirect(provider);
-          return;
-        }
         const result = await auth.signInWithPopup(provider);
         const user = userFromProfile(result.user);
         await saveLoginEvent(loginEventFor(user));
