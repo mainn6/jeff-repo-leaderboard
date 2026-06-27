@@ -4,12 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Repo Leaderboard</title>
-  <meta name="description" content="실제 사용해보고 유용한 깃허브 레포 모음집" />
+  <meta name="description" content="써본 GitHub repo를 star 순으로 정리" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://mainn6.github.io/jeff-repo-leaderboard/?x=v4" />
   <meta property="og:site_name" content="Repo Leaderboard" />
   <meta property="og:title" content="Repo Leaderboard" />
-  <meta property="og:description" content="실제 사용해보고 유용한 깃허브 레포 모음집" />
+  <meta property="og:description" content="써본 GitHub repo를 star 순으로 정리" />
   <meta property="og:image" content="https://mainn6.github.io/jeff-repo-leaderboard/og-image-v4.png" />
   <meta property="og:image:secure_url" content="https://mainn6.github.io/jeff-repo-leaderboard/og-image-v4.png" />
   <meta property="og:image:type" content="image/png" />
@@ -20,7 +20,7 @@
   <meta name="twitter:creator" content="@weplejeff" />
   <meta name="twitter:url" content="https://mainn6.github.io/jeff-repo-leaderboard/?x=v4" />
   <meta name="twitter:title" content="Repo Leaderboard" />
-  <meta name="twitter:description" content="실제 사용해보고 유용한 깃허브 레포 모음집" />
+  <meta name="twitter:description" content="써본 GitHub repo를 star 순으로 정리" />
   <meta name="twitter:image" content="https://mainn6.github.io/jeff-repo-leaderboard/og-image-v4.png" />
   <meta name="twitter:image:alt" content="Repo Leaderboard preview image" />
   <link rel="icon" href="data:," />
@@ -605,24 +605,11 @@
 </head>
 <body>
   <main class="app">
-    <section class="auth-strip" aria-label="Repo catalog access">
-      <div class="auth-copy">
-        <span data-i18n="auth.label">Access</span>
-        <strong id="authStatus">실제로 써보고 유용했던 GitHub repo 모음집</strong>
-        <p class="auth-note" data-i18n="auth.note">실제 사용해보고 유용한 깃허브 레포 모음집</p>
-        <small class="source-note" data-i18n="source.note">출처: GitHub public repositories</small>
+    <section class="auth-strip" style="justify-content:flex-end" aria-label="Language">
+      <div class="lang-toggle" aria-label="Language">
+        <button class="lang-choice" type="button" data-lang="ko">KR</button>
+        <button class="lang-choice" type="button" data-lang="en">EN</button>
       </div>
-      <div class="auth-actions">
-        <div class="lang-toggle" aria-label="Language">
-          <button class="lang-choice" type="button" data-lang="ko">KR</button>
-          <button class="lang-choice" type="button" data-lang="en">EN</button>
-        </div>
-        <div class="auth-user" id="authUser" hidden></div>
-        <div id="googleSignIn"></div>
-        <a class="auth-button" id="dashboardLink" href="./dashboard.html" hidden data-i18n="nav.dashboard">Dashboard</a>
-        <button class="auth-button" id="signOut" type="button" hidden data-i18n="auth.signOut">Sign out</button>
-      </div>
-      <p class="auth-note" id="authHelp" hidden></p>
     </section>
 
     <header class="hero">
@@ -630,7 +617,7 @@
         <div class="brandline"><span class="mark" aria-hidden="true"></span> Repo catalog</div>
         <div>
           <h1>Repo Leaderboard</h1>
-          <p data-i18n="hero.copy">카테고리별 GitHub 저장소를 stars 기준으로 정렬하고, 출처·활성도·공개 여부 같은 확인 가능한 신뢰 태그를 함께 봅니다.</p>
+          <p data-i18n="hero.copy">써본 GitHub repo를 카테고리별 star 순으로 정리.</p>
         </div>
       </section>
       <section class="metrics" aria-label="Repository summary">
@@ -688,8 +675,8 @@
     const copy = {
       ko: {
         'auth.label': 'Access',
-        'auth.note': '실제 사용해보고 유용한 깃허브 레포 모음집',
-        'auth.signIn': '실제로 써보고 유용했던 GitHub repo 모음집',
+        'auth.note': '',
+        'auth.signIn': '',
         'auth.signedIn': '로그인됨:',
         'auth.google': 'Google 로그인',
         'auth.signOut': 'Sign out',
@@ -700,7 +687,7 @@
         'auth.inApp': '보안 로그인을 위해 기본 브라우저에서 열어주세요. 링크를 복사했습니다.',
         'source.note': '출처: GitHub public repositories',
         'nav.dashboard': 'Dashboard',
-        'hero.copy': '실제로 써보고 다시 찾게 된 GitHub repo들을 stars 기준으로 정리했습니다.',
+        'hero.copy': '써본 GitHub repo를 카테고리별 star 순으로 정리.',
         'search.label': 'Search',
         'search.placeholder': 'repo, category, use case...',
         'category.label': 'Category',
@@ -736,8 +723,8 @@
       },
       en: {
         'auth.label': 'Access',
-        'auth.note': 'A handpicked list of GitHub repos I have actually used and found useful.',
-        'auth.signIn': 'A handpicked list of GitHub repos actually used and recommended.',
+        'auth.note': '',
+        'auth.signIn': '',
         'auth.signedIn': 'Signed in as',
         'auth.google': 'Continue with Google',
         'auth.signOut': 'Sign out',
@@ -748,7 +735,7 @@
         'auth.inApp': 'Open this page in your browser to continue secure sign-in. Link copied.',
         'source.note': 'Source: GitHub public repositories',
         'nav.dashboard': 'Dashboard',
-        'hero.copy': 'GitHub repos ranked by stars with source, freshness, and public-status trust tags.',
+        'hero.copy': "GitHub repos I've used, sorted by stars.",
         'search.label': 'Search',
         'search.placeholder': 'repo, category, use case...',
         'category.label': 'Category',
@@ -829,7 +816,6 @@
       currentLang = lang;
       localStorage.setItem('repoCatalogLang', lang);
       applyLanguage();
-      renderAuth(firebaseAuth()?.currentUser ? userFromProfile(firebaseAuth().currentUser) : null);
       if (catalogLoaded) renderBoard();
     }
 
