@@ -26,6 +26,47 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
     }
 
+    function validSessionData() {
+      return request.resource.data.keys().hasOnly([
+          'email', 'name', 'page', 'referrer', 'startedAt', 'lastSeenAt',
+          'durationSec', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 320
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.page is string
+        && request.resource.data.page.size() <= 500
+        && request.resource.data.referrer is string
+        && request.resource.data.referrer.size() <= 500
+        && request.resource.data.startedAt is string
+        && request.resource.data.startedAt.size() <= 40
+        && request.resource.data.lastSeenAt is string
+        && request.resource.data.lastSeenAt.size() <= 40
+        && request.resource.data.durationSec is int
+        && request.resource.data.durationSec >= 0
+        && request.resource.data.durationSec <= 86400;
+    }
+
+    function validSessionCreate() {
+      return validSessionData()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validSessionUpdate() {
+      return validSessionData()
+        && resource.data.email == request.auth.token.email
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.name == resource.data.name
+        && request.resource.data.page == resource.data.page
+        && request.resource.data.referrer == resource.data.referrer
+        && request.resource.data.startedAt == resource.data.startedAt
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
     match /admin/{email} {
       allow read: if request.auth != null && request.auth.token.email == email;
       allow write: if false;
@@ -40,6 +81,13 @@ service cloud.firestore {
       allow create: if request.auth != null && validLoginEvent();
       allow read: if isAdmin();
       allow update, delete: if false;
+    }
+
+    match /sessions/{sessionId} {
+      allow create: if request.auth != null && validSessionCreate();
+      allow update: if request.auth != null && validSessionUpdate();
+      allow read: if isAdmin();
+      allow delete: if false;
     }
 
     match /{document=**} {

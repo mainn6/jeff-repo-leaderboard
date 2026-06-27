@@ -136,6 +136,7 @@
     }
     .top-row:last-child { border-bottom: 0; padding-bottom: 0; }
     .top-row span { min-width: 0; overflow-wrap: anywhere; }
+    .top-row small { display: block; margin-top: 4px; color: var(--muted); font-weight: 750; }
     .top-row strong { font-family: inherit; }
     .table-wrap { overflow: hidden; }
     table { width: 100%; border-collapse: collapse; background: var(--paper); }
@@ -210,6 +211,8 @@
         <div class="metric"><span>Unique emails</span><strong id="uniqueEmails">0</strong></div>
         <div class="metric"><span>Today</span><strong id="todayEvents">0</strong></div>
         <div class="metric"><span>Last login</span><strong id="lastLogin">-</strong></div>
+        <div class="metric"><span>Total sessions</span><strong id="totalSessions">0</strong></div>
+        <div class="metric"><span>Avg session</span><strong id="avgSession">-</strong></div>
       </div>
     </section>
 
@@ -230,6 +233,10 @@
       <div class="chart-card">
         <h2>Top pages</h2>
         <div class="top-list" id="topPages"></div>
+      </div>
+      <div class="chart-card">
+        <h2>User duration</h2>
+        <div class="top-list" id="sessionUsers"></div>
       </div>
     </section>
 
@@ -263,8 +270,11 @@
       uniqueEmails: document.getElementById('uniqueEmails'),
       todayEvents: document.getElementById('todayEvents'),
       lastLogin: document.getElementById('lastLogin'),
+      totalSessions: document.getElementById('totalSessions'),
+      avgSession: document.getElementById('avgSession'),
       trendChart: document.getElementById('trendChart'),
       topPages: document.getElementById('topPages'),
+      sessionUsers: document.getElementById('sessionUsers'),
       eventsBody: document.getElementById('eventsBody')
     };
     function esc(s) {
@@ -289,6 +299,14 @@
     function shortWhenText(value) {
       const date = dateFrom(value);
       return date ? `${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}` : '-';
+    }
+    function durationText(value) {
+      const seconds = Math.max(0, Math.round(Number(value || 0)));
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      if (hours) return `${hours}h ${minutes % 60}m`;
+      if (minutes) return `${minutes}m ${seconds % 60}s`;
+      return `${seconds}s`;
     }
     function dayKey(date) {
       return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -337,6 +355,30 @@
         ? rows.map(([label, count]) => `<div class="top-row"><span>${esc(label)}</span><strong>${count}</strong></div>`).join('')
         : '<div class="empty">No page data yet.</div>';
     }
+    function renderSessionStats(sessions) {
+      const durations = sessions.map(session => Number(session.durationSec || 0)).filter(value => value >= 0);
+      const total = durations.reduce((sum, value) => sum + value, 0);
+      els.totalSessions.textContent = sessions.length;
+      els.avgSession.textContent = durations.length ? durationText(total / durations.length) : '-';
+      const byEmail = new Map();
+      sessions.forEach(session => {
+        const email = session.email || 'unknown';
+        const current = byEmail.get(email) || { count: 0, total: 0, lastSeenAt: '' };
+        current.count += 1;
+        current.total += Number(session.durationSec || 0);
+        current.lastSeenAt = [current.lastSeenAt, session.lastSeenAt].filter(Boolean).sort().at(-1) || '';
+        byEmail.set(email, current);
+      });
+      const rows = [...byEmail.entries()]
+        .sort((a, b) => b[1].total - a[1].total)
+        .slice(0, 8);
+      els.sessionUsers.innerHTML = rows.length
+        ? rows.map(([email, stat]) => `<div class="top-row">
+            <span>${esc(email)}<small>${stat.count} sessions · avg ${durationText(stat.total / stat.count)}</small></span>
+            <strong>${durationText(stat.total)}</strong>
+          </div>`).join('')
+        : '<div class="empty">No session data yet.</div>';
+    }
     async function signIn() {
       if (location.protocol === 'file:') { location.href = 'https://mainn6.github.io/jeff-repo-leaderboard/dashboard.html'; return; }
       const provider = new window.firebase.auth.GoogleAuthProvider();
@@ -346,8 +388,12 @@
     async function loadEvents() {
       els.tableStatus.textContent = 'Loading events...';
       const limit = Number(els.limitSelect.value || 100);
-      const snap = await db().collection('loginEvents').orderBy('signedInAt', 'desc').limit(limit).get();
-      const events = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const [eventSnap, sessionSnap] = await Promise.all([
+        db().collection('loginEvents').orderBy('signedInAt', 'desc').limit(limit).get(),
+        db().collection('sessions').orderBy('lastSeenAt', 'desc').limit(limit).get()
+      ]);
+      const events = eventSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const sessions = sessionSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const today = new Date().toISOString().slice(0, 10);
       els.totalEvents.textContent = events.length;
       els.uniqueEmails.textContent = new Set(events.map(event => event.email).filter(Boolean)).size;
@@ -356,6 +402,7 @@
       els.tableStatus.textContent = events.length ? `${events.length} events loaded.` : 'No login events yet.';
       renderTrend(events);
       renderTopPages(events);
+      renderSessionStats(sessions);
       els.eventsBody.innerHTML = events.length
         ? events.map(event => `<tr>
             <td class="email">${esc(event.email)}</td>

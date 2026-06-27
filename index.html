@@ -668,7 +668,7 @@
         'auth.catalogFailed': '로그인은 됐지만 repo catalog를 불러오지 못했습니다.',
         'auth.signOut': 'Sign out',
         'auth.google': 'Google 로그인',
-        'source.note': '출처: GitHub public repositories',
+        'source.note': '출처: GitHub public repositories · 로그인/세션 시간은 개선용으로 저장됩니다.',
         'nav.dashboard': 'Dashboard',
         'hero.copy': '카테고리별 GitHub 저장소를 stars 기준으로 정렬하고, 출처·활성도·공개 여부 같은 확인 가능한 신뢰 태그를 함께 봅니다.',
         'search.label': 'Search',
@@ -717,7 +717,7 @@
         'auth.catalogFailed': 'Signed in, but repo catalog failed to load.',
         'auth.signOut': 'Sign out',
         'auth.google': 'Continue with Google',
-        'source.note': 'Source: GitHub public repositories',
+        'source.note': 'Source: GitHub public repositories · Login and session duration are stored for analytics.',
         'nav.dashboard': 'Dashboard',
         'hero.copy': 'GitHub repos ranked by stars with source, freshness, and public-status trust tags.',
         'search.label': 'Search',
@@ -834,6 +834,63 @@
     function collectLogin(user) {
       saveLoginEvent(loginEventFor(user));
     }
+    let sessionRef = null;
+    let sessionTimer = null;
+    let sessionStartedAt = 0;
+    let sessionEmail = '';
+    let sessionPending = false;
+    function sessionDurationSec() {
+      return sessionStartedAt ? Math.max(0, Math.round((Date.now() - sessionStartedAt) / 1000)) : 0;
+    }
+    async function updateSession() {
+      if (!sessionRef || sessionPending) return;
+      sessionPending = true;
+      try {
+        await sessionRef.update({
+          lastSeenAt: new Date().toISOString(),
+          durationSec: sessionDurationSec(),
+          updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (error) {
+        console.warn('Session update failed', error);
+      } finally {
+        sessionPending = false;
+      }
+    }
+    async function startSession(user) {
+      const db = firebaseDb();
+      if (!db || !user?.email || (sessionRef && sessionEmail === user.email)) return;
+      if (sessionTimer) clearInterval(sessionTimer);
+      const now = new Date().toISOString();
+      sessionStartedAt = Date.now();
+      sessionEmail = user.email;
+      sessionRef = db.collection('sessions').doc();
+      try {
+        await sessionRef.set({
+          email: user.email,
+          name: user.name || user.email,
+          page: location.href,
+          referrer: document.referrer || '',
+          startedAt: now,
+          lastSeenAt: now,
+          durationSec: 0,
+          createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+        });
+        sessionTimer = setInterval(updateSession, 30000);
+      } catch (error) {
+        console.warn('Session start failed', error);
+        sessionRef = null;
+        sessionEmail = '';
+      }
+    }
+    function clearSession() {
+      if (sessionTimer) clearInterval(sessionTimer);
+      sessionTimer = null;
+      sessionRef = null;
+      sessionStartedAt = 0;
+      sessionEmail = '';
+    }
     function firebaseAuth() {
       if (!window.firebase?.auth) return null;
       if (!window.firebase.apps.length) window.firebase.initializeApp(FIREBASE_CONFIG);
@@ -918,6 +975,7 @@
         const user = userFromProfile(result.user);
         collectLogin(user);
         renderAuth(user);
+        await startSession(user);
         await loadCatalog();
       } catch (error) {
         els.authStatus.textContent = error?.code === 'auth/popup-closed-by-user'
@@ -938,6 +996,7 @@
       if (!auth) return;
       auth.onAuthStateChanged(async profile => {
         if (!profile?.email) {
+          clearSession();
           renderAuth(null);
           clearCatalog();
           renderGoogleButton();
@@ -945,6 +1004,7 @@
         }
         const user = userFromProfile(profile);
         renderAuth(user);
+        await startSession(user);
         await loadCatalog();
       });
     }
@@ -1110,11 +1170,17 @@
       button.addEventListener('click', () => setLanguage(button.dataset.lang));
     });
     els.signOut.addEventListener('click', async () => {
+      await updateSession();
       try { await firebaseAuth()?.signOut(); } catch {}
+      clearSession();
       renderAuth(null);
       clearCatalog();
       renderGoogleButton();
     });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') updateSession();
+    });
+    window.addEventListener('pagehide', updateSession);
     applyLanguage();
     initAuth();
     renderCategoryControls();
