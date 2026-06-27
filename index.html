@@ -1027,6 +1027,16 @@
     function esc(s) {
       return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
+    function safeGithubUrl(url) {
+      try {
+        const parsed = new URL(String(url || ''), location.href);
+        return parsed.protocol === 'https:' && parsed.hostname === 'github.com'
+          ? parsed.href
+          : 'https://github.com/';
+      } catch {
+        return 'https://github.com/';
+      }
+    }
     function cleanText(s) {
       return String(s ?? '').replace(/\p{Extended_Pictographic}/gu, '').replace(/\s+/g, ' ').trim();
     }
@@ -1132,19 +1142,20 @@
       els.backedCount.textContent = ITEMS.filter(sourceBacked).length;
     }
     function rowTemplate(item, rank, index) {
+      const repoUrl = safeGithubUrl(item.url);
       const desc = cleanText(item.readmeSummary || item.githubDescription || item.plainDescription || item.description || t('repo.noDesc'));
       const badgeHtml = badgesFor(item).map(([label, cls]) => `<span class="badge ${cls}">${esc(label)}</span>`).join('');
       return `<article class="repo-row" style="--i:${index};${accentStyle(item.category)}">
         <div class="rank">${rank}</div>
         <div class="repo-main">
-          <div class="repo-name"><a href="${esc(item.url)}" target="_blank" rel="noreferrer">${esc(item.name)}</a></div>
+          <div class="repo-name"><a href="${esc(repoUrl)}" target="_blank" rel="noopener noreferrer">${esc(item.name)}</a></div>
           <p class="repo-desc">${esc(desc)}</p>
           <div class="badges">${badgeHtml}</div>
         </div>
         <div class="repo-stats">
           <div class="stars">${esc(item.starsLabel || String(stars(item)))}</div>
           <div class="repo-meta"><span>${esc(item.forks ?? 'n/a')} ${esc(t('repo.forks'))}</span><span>${esc(item.pushedAt || t('repo.noDate'))}</span></div>
-          <a class="open-link" href="${esc(item.url)}" target="_blank" rel="noreferrer">${esc(t('repo.open'))}</a>
+          <a class="open-link" href="${esc(repoUrl)}" target="_blank" rel="noopener noreferrer">${esc(t('repo.open'))}</a>
         </div>
       </article>`;
     }
