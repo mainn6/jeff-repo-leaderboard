@@ -1162,16 +1162,6 @@
     els.langButtons.forEach(button => {
       button.addEventListener('click', () => setLanguage(button.dataset.lang));
     });
-    els.signOut.addEventListener('click', async () => {
-      await updateSession();
-      try { await firebaseAuth()?.signOut(); } catch {}
-      clearSession();
-      renderAuth(null);
-    });
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') updateSession();
-    });
-    window.addEventListener('pagehide', updateSession);
     applyLanguage();
     initApp();
   </script>
