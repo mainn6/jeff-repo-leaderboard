@@ -97,16 +97,18 @@
     td { font: 650 14px/1.45 system-ui, sans-serif; overflow-wrap: anywhere; }
     .email { font-family: inherit; font-weight: 900; }
     .empty { padding: 36px; text-align: center; color: var(--muted); }
-    body.auth-required .app { min-height: 100dvh; display: grid; place-items: center; }
-    body.auth-required .topbar {
-      width: min(560px, 100%);
-      display: grid;
-      align-items: start;
+    .locked {
+      border: 3px solid var(--line);
+      border-radius: 8px;
       background: var(--accent);
-      padding: 28px;
-      margin: 0;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      font: 800 18px/1.5 system-ui, sans-serif;
     }
-    body.auth-required .hero, body.auth-required .panel, body.auth-required .table-wrap { display: none; }
+    body:not(.dashboard-locked) .locked { display: none; }
+    body.dashboard-locked .hero,
+    body.dashboard-locked .panel,
+    body.dashboard-locked .table-wrap { display: none; }
     @media (max-width: 780px) {
       .hero { grid-template-columns: 1fr; padding: 20px; }
       .metrics { grid-template-columns: 1fr; }
@@ -130,12 +132,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
-<body class="auth-required">
+  <body class="dashboard-locked">
   <main class="app">
     <section class="topbar" aria-label="Dashboard auth">
       <div>
         <div class="brand">JEFF repo dashboard</div>
-        <div class="status" id="status">Sign in with the admin Google account.</div>
+        <div class="status" id="status">Sign in with Google.</div>
       </div>
       <div class="actions">
         <a class="button" href="./index.html">Leaderboard</a>
@@ -143,6 +145,8 @@
         <button class="button" id="signOut" type="button" hidden>Sign out</button>
       </div>
     </section>
+
+    <section class="locked" id="lockedState">Dashboard activates only for jeffk.lockedin@gmail.com.</section>
 
     <section class="hero">
       <div>
@@ -227,13 +231,8 @@
       provider.setCustomParameters({ prompt: 'select_account' });
       await auth().signInWithPopup(provider);
     }
-    async function loadEvents(user) {
-      els.tableStatus.textContent = 'Checking admin access...';
-      if (user.email !== DASHBOARD_ADMIN_EMAIL) {
-        els.tableStatus.textContent = 'No dashboard access for this email.';
-        els.eventsBody.innerHTML = '<tr><td colspan="4" class="empty">관리자 계정으로 로그인해야 합니다.</td></tr>';
-        return;
-      }
+    async function loadEvents() {
+      els.tableStatus.textContent = 'Loading events...';
       const limit = Number(els.limitSelect.value || 100);
       const snap = await db().collection('loginEvents').orderBy('signedInAt', 'desc').limit(limit).get();
       const events = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -252,13 +251,23 @@
           </tr>`).join('')
         : '<tr><td colspan="4" class="empty">No events yet.</td></tr>';
     }
-    auth().onAuthStateChanged(async user => {
-      document.body.classList.toggle('auth-required', !user?.email);
-      els.googleSignIn.hidden = Boolean(user?.email);
+    function renderDashboardAuth(user) {
+      const isAdmin = user?.email === DASHBOARD_ADMIN_EMAIL;
+      document.body.classList.toggle('dashboard-locked', !isAdmin);
+      els.googleSignIn.hidden = isAdmin;
+      els.googleSignIn.textContent = user?.email ? 'Switch Google account' : 'Continue with Google';
       els.signOut.hidden = !user?.email;
-      if (!user?.email) { els.status.textContent = 'Sign in with the admin Google account.'; return; }
+      if (!user?.email) { els.status.textContent = 'Sign in with Google.'; return false; }
+      if (!isAdmin) {
+        els.status.textContent = `Signed in as ${user.email}`;
+        return false;
+      }
       els.status.textContent = `Signed in as ${user.email}`;
-      try { await loadEvents(user); }
+      return true;
+    }
+    auth().onAuthStateChanged(async user => {
+      if (!renderDashboardAuth(user)) return;
+      try { await loadEvents(); }
       catch (error) {
         console.warn(error);
         els.tableStatus.textContent = 'Dashboard failed to load.';
@@ -267,7 +276,7 @@
     });
     els.googleSignIn.addEventListener('click', signIn);
     els.signOut.addEventListener('click', () => auth().signOut());
-    els.limitSelect.addEventListener('change', () => auth().currentUser && loadEvents(auth().currentUser));
+    els.limitSelect.addEventListener('change', () => auth().currentUser?.email === DASHBOARD_ADMIN_EMAIL && loadEvents());
   </script>
 </body>
 </html>
