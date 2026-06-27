@@ -589,9 +589,6 @@
       measurementId: 'G-WBY1FX730M'
     };
     const DASHBOARD_ADMIN_EMAIL = 'jeffk.lockedin@gmail.com';
-    const LOGIN_EVENTS_STORAGE_KEY = 'jeffRepoLoginEvents';
-    // ponytail: static GitHub Pages cannot save server-side; set this to a tiny collector URL when ready.
-    const USER_DATA_ENDPOINT = '';
     let ITEMS = [];
     let categories = [];
     let catalogLoaded = false;
@@ -625,14 +622,6 @@
         !GOOGLE_CLIENT_ID.startsWith('YOUR_') &&
         GOOGLE_CLIENT_ID.endsWith('.apps.googleusercontent.com');
     }
-    function readLoginEvents() {
-      try {
-        const events = JSON.parse(localStorage.getItem(LOGIN_EVENTS_STORAGE_KEY) || '[]');
-        return Array.isArray(events) ? events : [];
-      } catch {
-        return [];
-      }
-    }
     function loginEventFor(user) {
       return {
         email: user.email,
@@ -642,22 +631,6 @@
         page: location.href,
         referrer: document.referrer || ''
       };
-    }
-    function rememberLoginEvent(event) {
-      localStorage.setItem(LOGIN_EVENTS_STORAGE_KEY, JSON.stringify([event, ...readLoginEvents()].slice(0, 50)));
-    }
-    async function sendLoginEvent(event) {
-      if (!USER_DATA_ENDPOINT) return;
-      try {
-        await fetch(USER_DATA_ENDPOINT, {
-          method: 'POST',
-          mode: 'cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(event)
-        });
-      } catch (error) {
-        console.warn('Login event save failed', error);
-      }
     }
     async function saveLoginEvent(event) {
       const db = firebaseDb();
@@ -672,10 +645,7 @@
       }
     }
     function collectLogin(user) {
-      const event = loginEventFor(user);
-      rememberLoginEvent(event);
-      sendLoginEvent(event);
-      saveLoginEvent(event);
+      saveLoginEvent(loginEventFor(user));
     }
     function firebaseAuth() {
       if (!window.firebase?.auth) return null;
