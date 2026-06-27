@@ -34,7 +34,7 @@
       margin: 0 auto;
       padding: 18px 0 48px;
     }
-    .topbar, .hero, .panel, .table-wrap {
+    .topbar, .hero, .panel, .chart-card, .table-wrap {
       border: 3px solid var(--line);
       border-radius: 8px;
       background: var(--paper);
@@ -89,6 +89,54 @@
     #lastLogin { white-space: nowrap; font-size: clamp(21px, 2.8vw, 30px); }
     .panel { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; margin-bottom: 16px; }
     .status { color: var(--muted); font: 650 14px/1.5 system-ui, sans-serif; }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .chart-card { min-width: 0; padding: 16px; }
+    .chart-card h2 { margin: 0 0 12px; font-size: 16px; text-transform: uppercase; }
+    .bar-chart {
+      height: 210px;
+      display: grid;
+      grid-template-columns: repeat(14, minmax(0, 1fr));
+      align-items: end;
+      gap: 8px;
+      padding-top: 8px;
+    }
+    .bar {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 7px;
+      height: 100%;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-align: center;
+    }
+    .bar-fill {
+      align-self: end;
+      min-height: 2px;
+      border: 2px solid var(--line);
+      border-radius: 5px 5px 0 0;
+      background: var(--green);
+    }
+    .bar.today .bar-fill { background: var(--accent); }
+    .top-list { display: grid; gap: 10px; }
+    .top-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--line);
+      font: 750 14px/1.35 system-ui, sans-serif;
+    }
+    .top-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .top-row span { min-width: 0; overflow-wrap: anywhere; }
+    .top-row strong { font-family: inherit; }
     .table-wrap { overflow: hidden; }
     table { width: 100%; border-collapse: collapse; background: var(--paper); }
     th, td { padding: 14px; border-bottom: 2px solid var(--line); text-align: left; vertical-align: top; }
@@ -108,9 +156,11 @@
     body:not(.dashboard-locked) .locked { display: none; }
     body.dashboard-locked .hero,
     body.dashboard-locked .panel,
+    body.dashboard-locked .chart-grid,
     body.dashboard-locked .table-wrap { display: none; }
     @media (max-width: 780px) {
       .hero { grid-template-columns: 1fr; padding: 20px; }
+      .chart-grid { grid-template-columns: 1fr; }
       .metrics { grid-template-columns: 1fr; }
       .metric, .metric:nth-child(2n), .metric:nth-last-child(-n+2) { border-right: 0; border-bottom: 3px solid var(--line); }
       .metric:last-child { border-bottom: 0; }
@@ -119,9 +169,11 @@
     @media (max-width: 430px) {
       :root { --shadow: 6px 6px 0 #050505; }
       .app { width: min(100vw - 20px, 1180px); padding-top: 10px; }
-      .topbar, .hero, .panel, .table-wrap { border-width: 2px; }
+      .topbar, .hero, .panel, .chart-card, .table-wrap { border-width: 2px; }
       .hero { padding: 16px; }
       h1 { font-size: clamp(38px, 14vw, 54px); }
+      .bar-chart { height: 170px; gap: 4px; }
+      .bar { font-size: 9px; }
       .metric { padding: 12px; }
       .metric strong { font-size: clamp(22px, 9vw, 30px); }
       #lastLogin { font-size: clamp(20px, 7vw, 27px); }
@@ -170,6 +222,17 @@
       </select>
     </section>
 
+    <section class="chart-grid" aria-label="Login analytics">
+      <div class="chart-card">
+        <h2>14 day login trend</h2>
+        <div class="bar-chart" id="trendChart"></div>
+      </div>
+      <div class="chart-card">
+        <h2>Top pages</h2>
+        <div class="top-list" id="topPages"></div>
+      </div>
+    </section>
+
     <section class="table-wrap">
       <table>
         <thead>
@@ -200,6 +263,8 @@
       uniqueEmails: document.getElementById('uniqueEmails'),
       todayEvents: document.getElementById('todayEvents'),
       lastLogin: document.getElementById('lastLogin'),
+      trendChart: document.getElementById('trendChart'),
+      topPages: document.getElementById('topPages'),
       eventsBody: document.getElementById('eventsBody')
     };
     function esc(s) {
@@ -225,6 +290,53 @@
       const date = dateFrom(value);
       return date ? `${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}` : '-';
     }
+    function dayKey(date) {
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    }
+    function pageLabel(url) {
+      try {
+        const parsed = new URL(url);
+        return parsed.pathname.replace(/\/$/, '') || '/';
+      } catch {
+        return url || '-';
+      }
+    }
+    function renderTrend(events) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const days = Array.from({ length: 14 }, (_, index) => {
+        const date = new Date(today);
+        date.setDate(today.getDate() - 13 + index);
+        return date;
+      });
+      const counts = Object.fromEntries(days.map(date => [dayKey(date), 0]));
+      events.forEach(event => {
+        const date = dateFrom(event.signedInAt);
+        if (!date) return;
+        const key = dayKey(date);
+        if (key in counts) counts[key] += 1;
+      });
+      const max = Math.max(1, ...Object.values(counts));
+      els.trendChart.innerHTML = days.map((date, index) => {
+        const count = counts[dayKey(date)];
+        const height = count ? Math.max(8, Math.round((count / max) * 100)) : 2;
+        return `<div class="bar ${index === days.length - 1 ? 'today' : ''}" title="${esc(dayKey(date))}: ${count}">
+          <div class="bar-fill" style="height:${height}%"></div>
+          <span>${pad(date.getMonth() + 1)}/${pad(date.getDate())}<br>${count}</span>
+        </div>`;
+      }).join('');
+    }
+    function renderTopPages(events) {
+      const counts = new Map();
+      events.forEach(event => {
+        const label = pageLabel(event.page);
+        counts.set(label, (counts.get(label) || 0) + 1);
+      });
+      const rows = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+      els.topPages.innerHTML = rows.length
+        ? rows.map(([label, count]) => `<div class="top-row"><span>${esc(label)}</span><strong>${count}</strong></div>`).join('')
+        : '<div class="empty">No page data yet.</div>';
+    }
     async function signIn() {
       if (location.protocol === 'file:') { location.href = 'https://mainn6.github.io/jeff-repo-leaderboard/dashboard.html'; return; }
       const provider = new window.firebase.auth.GoogleAuthProvider();
@@ -242,6 +354,8 @@
       els.todayEvents.textContent = events.filter(event => String(event.signedInAt || '').startsWith(today)).length;
       els.lastLogin.textContent = shortWhenText(events[0]?.signedInAt);
       els.tableStatus.textContent = events.length ? `${events.length} events loaded.` : 'No login events yet.';
+      renderTrend(events);
+      renderTopPages(events);
       els.eventsBody.innerHTML = events.length
         ? events.map(event => `<tr>
             <td class="email">${esc(event.email)}</td>
