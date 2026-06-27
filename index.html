@@ -484,14 +484,15 @@
       .repo-stats { grid-column: auto; }
     }
   </style>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 </head>
 <body>
   <main class="app">
     <section class="auth-strip" aria-label="Google email login">
       <div class="auth-copy">
         <span>Email access</span>
-        <strong id="authStatus">Google OAuth client ID needed.</strong>
+        <strong id="authStatus">Sign in with your Google email.</strong>
       </div>
       <div class="auth-actions">
         <div class="auth-user" id="authUser" hidden></div>
@@ -543,7 +544,16 @@
     </section>
   </main>
   <script>
-    const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+    const GOOGLE_CLIENT_ID = '171338423650-alh51ojgec7jvetaasgqbe72rcglp3r7.apps.googleusercontent.com';
+    const FIREBASE_CONFIG = {
+      apiKey: 'AIzaSyDJbRrEsRpCJkmM4hmtVcIVY1oR-U4TkNw',
+      authDomain: 'masang-3446d.firebaseapp.com',
+      projectId: 'masang-3446d',
+      storageBucket: 'masang-3446d.firebasestorage.app',
+      messagingSenderId: '171338423650',
+      appId: '1:171338423650:web:e80fe23c8da618b60da03b',
+      measurementId: 'G-WBY1FX730M'
+    };
     const AUTH_STORAGE_KEY = 'jeffRepoGoogleUser';
     const LOGIN_EVENTS_STORAGE_KEY = 'jeffRepoLoginEvents';
     // ponytail: static GitHub Pages cannot save server-side; set this to a tiny collector URL when ready.
@@ -623,14 +633,10 @@
       rememberLoginEvent(event);
       sendLoginEvent(event);
     }
-    function decodeGoogleCredential(token) {
-      try {
-        const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-        const json = decodeURIComponent(atob(payload).split('').map(c => '%' + (`00${c.charCodeAt(0).toString(16)}`).slice(-2)).join(''));
-        return JSON.parse(json);
-      } catch {
-        return null;
-      }
+    function firebaseAuth() {
+      if (!window.firebase?.auth) return null;
+      if (!window.firebase.apps.length) window.firebase.initializeApp(FIREBASE_CONFIG);
+      return window.firebase.auth();
     }
     function renderAuth(user) {
       if (!els.authStatus) return;
@@ -651,34 +657,41 @@
       els.authStatus.textContent = 'Sign in with your Google email.';
       els.authUser.innerHTML = '';
     }
-    function handleGoogleCredential(response) {
-      const payload = decodeGoogleCredential(response?.credential || '');
-      if (!payload?.email) {
-        els.authStatus.textContent = 'Google sign-in failed. Try again.';
+    async function signInWithGoogle() {
+      const auth = firebaseAuth();
+      if (!auth) {
+        els.authStatus.textContent = 'Firebase Auth is still loading. Try again.';
         return;
       }
-      const user = { name: payload.name || payload.email, email: payload.email, picture: payload.picture || '' };
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-      collectLogin(user);
-      renderAuth(user);
+      try {
+        els.authStatus.textContent = 'Opening Google sign-in...';
+        const provider = new window.firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const result = await auth.signInWithPopup(provider);
+        const profile = result.user;
+        const user = {
+          name: profile.displayName || profile.email,
+          email: profile.email,
+          picture: profile.photoURL || ''
+        };
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+        collectLogin(user);
+        renderAuth(user);
+      } catch (error) {
+        els.authStatus.textContent = error?.code === 'auth/popup-closed-by-user'
+          ? 'Google sign-in was closed.'
+          : 'Google sign-in failed. Try again.';
+      }
     }
     function renderGoogleButton() {
-      if (!googleClientConfigured() || readStoredUser()?.email || !window.google?.accounts?.id) return;
-      els.googleSignIn.innerHTML = '';
-      window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
-      window.google.accounts.id.renderButton(els.googleSignIn, {
-        theme: 'outline',
-        size: 'large',
-        type: 'standard',
-        text: 'signin_with',
-        shape: 'rectangular',
-        logo_alignment: 'left'
-      });
+      if (!googleClientConfigured() || readStoredUser()?.email) return;
+      els.googleSignIn.innerHTML = '<button class="auth-button" type="button">Continue with Google</button>';
+      els.googleSignIn.querySelector('button').addEventListener('click', signInWithGoogle);
     }
     function initAuth() {
       renderAuth(readStoredUser());
       if (!googleClientConfigured()) return;
-      if (window.google?.accounts?.id) {
+      if (window.firebase?.auth) {
         renderGoogleButton();
       } else {
         window.addEventListener('load', renderGoogleButton, { once: true });
@@ -842,9 +855,9 @@
     els.sortSelect.addEventListener('change', renderBoard);
     els.tagSelect.addEventListener('change', renderBoard);
     els.toggleDepth.addEventListener('click', () => { compact.value = !compact.value; renderBoard(); });
-    els.signOut.addEventListener('click', () => {
+    els.signOut.addEventListener('click', async () => {
       localStorage.removeItem(AUTH_STORAGE_KEY);
-      window.google?.accounts?.id?.disableAutoSelect();
+      try { await firebaseAuth()?.signOut(); } catch {}
       renderAuth(null);
       renderGoogleButton();
     });
