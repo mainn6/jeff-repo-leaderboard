@@ -435,7 +435,7 @@
       font-weight: 650;
     }
     .auth-note {
-      display: none;
+      display: block;
       max-width: 48ch;
       color: var(--muted);
       font-family: var(--body-font);
@@ -577,12 +577,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
-<body class="auth-required">
+<body>
   <main class="app">
     <section class="auth-strip" aria-label="Google email login">
       <div class="auth-copy">
-        <span data-i18n="auth.label">Email access</span>
-        <strong id="authStatus">Google 이메일로 로그인하세요.</strong>
+        <span data-i18n="auth.label">Public access</span>
+        <strong id="authStatus">로그인 없이 볼 수 있습니다.</strong>
         <p class="auth-note" data-i18n="auth.note">실제 사용해보고 유용한 깃허브 레포 모음집</p>
         <small class="source-note" data-i18n="source.note">출처: GitHub public repositories</small>
       </div>
@@ -662,10 +662,11 @@
     let currentLang = localStorage.getItem('repoCatalogLang') || 'ko';
     const copy = {
       ko: {
-        'auth.label': 'Email access',
+        'auth.label': 'Public access',
         'auth.note': '실제 사용해보고 유용한 깃허브 레포 모음집',
-        'auth.signIn': 'Google 이메일로 로그인하세요.',
+        'auth.signIn': '로그인 없이 볼 수 있습니다.',
         'auth.signedIn': '로그인됨:',
+        'auth.inApp': '앱 안 브라우저에서는 Google 로그인이 막힐 수 있습니다. Safari나 Chrome에서 열어주세요.',
         'auth.config': 'Google OAuth client ID가 필요합니다.',
         'auth.loading': 'Firebase Auth 로딩 중입니다. 다시 시도하세요.',
         'auth.opening': 'Google 로그인 여는 중...',
@@ -674,7 +675,7 @@
         'auth.catalogFailed': '로그인은 됐지만 repo catalog를 불러오지 못했습니다.',
         'auth.signOut': 'Sign out',
         'auth.google': 'Google 로그인',
-        'source.note': '출처: GitHub public repositories · 로그인/세션 시간은 개선용으로 저장됩니다.',
+        'source.note': '출처: GitHub public repositories · Dashboard만 Google 로그인이 필요합니다.',
         'nav.dashboard': 'Dashboard',
         'hero.copy': '카테고리별 GitHub 저장소를 stars 기준으로 정렬하고, 출처·활성도·공개 여부 같은 확인 가능한 신뢰 태그를 함께 봅니다.',
         'search.label': 'Search',
@@ -711,10 +712,11 @@
         'none': 'none'
       },
       en: {
-        'auth.label': 'Email access',
+        'auth.label': 'Public access',
         'auth.note': 'A handpicked list of GitHub repos I have actually used and found useful.',
-        'auth.signIn': 'Sign in with your Google email.',
+        'auth.signIn': 'Browse without signing in.',
         'auth.signedIn': 'Signed in as',
+        'auth.inApp': 'Google sign-in can be blocked inside in-app browsers. Open this in Safari or Chrome.',
         'auth.config': 'Google OAuth client ID needed.',
         'auth.loading': 'Firebase Auth is still loading. Try again.',
         'auth.opening': 'Opening Google sign-in...',
@@ -723,7 +725,7 @@
         'auth.catalogFailed': 'Signed in, but repo catalog failed to load.',
         'auth.signOut': 'Sign out',
         'auth.google': 'Continue with Google',
-        'source.note': 'Source: GitHub public repositories · Login and session duration are stored for analytics.',
+        'source.note': 'Source: GitHub public repositories · Google sign-in is only needed for the dashboard.',
         'nav.dashboard': 'Dashboard',
         'hero.copy': 'GitHub repos ranked by stars with source, freshness, and public-status trust tags.',
         'search.label': 'Search',
@@ -814,6 +816,9 @@
       return GOOGLE_CLIENT_ID &&
         !GOOGLE_CLIENT_ID.startsWith('YOUR_') &&
         GOOGLE_CLIENT_ID.endsWith('.apps.googleusercontent.com');
+    }
+    function isInAppBrowser() {
+      return /Twitter|FBAN|FBAV|Instagram|KAKAOTALK|Line|MicroMessenger/i.test(navigator.userAgent);
     }
     function loginEventFor(user) {
       return {
@@ -925,29 +930,42 @@
     }
     async function loadCatalog() {
       if (catalogLoaded) return;
-      const db = firebaseDb();
-      if (!db) return;
       els.leaderboard.innerHTML = `<div class="empty-state">${esc(t('board.loading'))}</div>`;
       try {
-        const snap = await db.collection('repoCatalog').doc('current').get();
-        if (!snap.exists) throw new Error('Repo catalog document is missing.');
-        const data = snap.data() || {};
+        const res = await fetch('./repo-catalog.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Static catalog failed: ${res.status}`);
+        const data = await res.json();
         ITEMS = Array.isArray(data.items) ? data.items : [];
         categories = [...new Set(ITEMS.map(item => item.category).filter(Boolean))];
         catalogLoaded = true;
         renderCategoryControls();
         renderBoard();
       } catch (error) {
-        console.warn('Repo catalog load failed', error);
-        els.authStatus.textContent = t('auth.catalogFailed');
-        els.leaderboard.innerHTML = `<div class="empty-state">${esc(t('board.loadFailed'))}</div>`;
+        const db = firebaseDb();
+        if (!db) {
+          console.warn('Repo catalog load failed', error);
+          els.leaderboard.innerHTML = `<div class="empty-state">${esc(t('board.loadFailed'))}</div>`;
+          return;
+        }
+        try {
+          const snap = await db.collection('repoCatalog').doc('current').get();
+          if (!snap.exists) throw new Error('Repo catalog document is missing.');
+          const data = snap.data() || {};
+          ITEMS = Array.isArray(data.items) ? data.items : [];
+          categories = [...new Set(ITEMS.map(item => item.category).filter(Boolean))];
+          catalogLoaded = true;
+          renderCategoryControls();
+          renderBoard();
+        } catch (dbError) {
+          console.warn('Repo catalog load failed', error, dbError);
+          els.leaderboard.innerHTML = `<div class="empty-state">${esc(t('board.loadFailed'))}</div>`;
+        }
       }
     }
     function renderAuth(user) {
       if (!els.authStatus) return;
       activeUser = user || null;
       const configured = googleClientConfigured();
-      document.body.classList.toggle('auth-required', !user?.email);
       els.googleSignIn.hidden = !configured || Boolean(user?.email);
       els.signOut.hidden = !user?.email;
       els.authUser.hidden = !user?.email;
@@ -990,13 +1008,20 @@
       }
     }
     function renderGoogleButton() {
-      if (!googleClientConfigured() || !document.body.classList.contains('auth-required')) return;
+      if (!googleClientConfigured() || activeUser?.email) return;
+      if (isInAppBrowser()) {
+        els.googleSignIn.innerHTML = '';
+        els.googleSignIn.hidden = true;
+        els.authStatus.textContent = t('auth.inApp');
+        return;
+      }
       els.googleSignIn.innerHTML = `<button class="auth-button" type="button">${esc(t('auth.google'))}</button>`;
       els.googleSignIn.querySelector('button').addEventListener('click', signInWithGoogle);
     }
     function initAuth() {
       renderAuth(null);
       renderGoogleButton();
+      loadCatalog();
       if (!googleClientConfigured()) return;
       const auth = firebaseAuth();
       if (!auth) return;
@@ -1004,7 +1029,6 @@
         if (!profile?.email) {
           clearSession();
           renderAuth(null);
-          clearCatalog();
           renderGoogleButton();
           return;
         }
@@ -1180,7 +1204,6 @@
       try { await firebaseAuth()?.signOut(); } catch {}
       clearSession();
       renderAuth(null);
-      clearCatalog();
       renderGoogleButton();
     });
     document.addEventListener('visibilitychange', () => {
