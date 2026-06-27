@@ -172,6 +172,7 @@
       appId: '1:171338423650:web:e80fe23c8da618b60da03b',
       measurementId: 'G-WBY1FX730M'
     };
+    const DASHBOARD_ADMIN_EMAIL = 'jeffk.lockedin@gmail.com';
     const els = {
       status: document.getElementById('status'),
       tableStatus: document.getElementById('tableStatus'),
@@ -206,8 +207,7 @@
     }
     async function loadEvents(user) {
       els.tableStatus.textContent = 'Checking admin access...';
-      const adminDoc = await db().collection('admin').doc(user.email).get();
-      if (!adminDoc.exists) {
+      if (user.email !== DASHBOARD_ADMIN_EMAIL) {
         els.tableStatus.textContent = 'No dashboard access for this email.';
         els.eventsBody.innerHTML = '<tr><td colspan="4" class="empty">관리자 계정으로 로그인해야 합니다.</td></tr>';
         return;
