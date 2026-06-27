@@ -608,7 +608,7 @@
     <section class="auth-strip" aria-label="Repo catalog access">
       <div class="auth-copy">
         <span data-i18n="auth.label">Access</span>
-        <strong id="authStatus">Google 로그인 후 볼 수 있습니다.</strong>
+        <strong id="authStatus">JEFF가 실제로 써보고 유용했던 GitHub repo 모음집</strong>
         <p class="auth-note" data-i18n="auth.note">실제 사용해보고 유용한 깃허브 레포 모음집</p>
         <small class="source-note" data-i18n="source.note">출처: GitHub public repositories</small>
       </div>
@@ -689,7 +689,7 @@
       ko: {
         'auth.label': 'Access',
         'auth.note': '실제 사용해보고 유용한 깃허브 레포 모음집',
-        'auth.signIn': 'JEFF가 실제로 써본 GitHub repo 모음 · 로그인은 선택(관리자용)',
+        'auth.signIn': 'JEFF가 실제로 써보고 유용했던 GitHub repo 모음집',
         'auth.signedIn': '로그인됨:',
         'auth.google': 'Google 로그인',
         'auth.signOut': 'Sign out',
@@ -737,7 +737,7 @@
       en: {
         'auth.label': 'Access',
         'auth.note': 'A handpicked list of GitHub repos I have actually used and found useful.',
-        'auth.signIn': 'A handpicked list of GitHub repos JEFF actually uses · sign-in optional (admin).',
+        'auth.signIn': 'A handpicked list of GitHub repos JEFF actually uses and recommends.',
         'auth.signedIn': 'Signed in as',
         'auth.google': 'Continue with Google',
         'auth.signOut': 'Sign out',
@@ -954,22 +954,15 @@
         els.leaderboard.innerHTML = `<div class="empty-state">${esc(t('board.loadFailed'))}</div>`;
       }
     }
-    function renderAuth(user) {
-      if (!els.authStatus) return;
+    function renderAuth() {
+      // Login removed entirely — leaderboard is fully public.
       document.body.classList.remove('auth-required');
-      els.authStatus.textContent = user?.email ? `${t('auth.signedIn')} ${user.email}` : t('auth.signIn');
-      els.authUser.hidden = !user?.email;
-      els.signOut.hidden = !user?.email;
-      els.dashboardLink.hidden = user?.email !== DASHBOARD_ADMIN_EMAIL;
-      els.authHelp.hidden = true;
-      if (user?.email) {
-        els.authUser.innerHTML = `${user.picture ? `<img src="${esc(user.picture)}" alt="">` : ''}<span>${esc(user.name || user.email)}</span>`;
-        els.googleSignIn.innerHTML = '';
-        return;
-      }
-      els.authUser.innerHTML = '';
-      els.googleSignIn.innerHTML = `<button class="auth-button" type="button">${esc(t('auth.google'))}</button>`;
-      els.googleSignIn.querySelector('button').addEventListener('click', signInWithGoogle);
+      if (els.authStatus) els.authStatus.textContent = t('auth.signIn');
+      if (els.authUser) { els.authUser.hidden = true; els.authUser.innerHTML = ''; }
+      if (els.signOut) els.signOut.hidden = true;
+      if (els.dashboardLink) els.dashboardLink.hidden = true;
+      if (els.authHelp) els.authHelp.hidden = true;
+      if (els.googleSignIn) els.googleSignIn.innerHTML = '';
     }
     async function signInWithGoogle() {
       if (isInAppBrowser()) {
@@ -1007,24 +1000,9 @@
       }
     }
     function initApp() {
-      renderAuth(null);
+      // No auth. Just render the public leaderboard.
+      renderAuth();
       loadCatalog();
-      const auth = firebaseAuth();
-      if (!auth) return;
-      auth.getRedirectResult().then(async result => {
-        if (result?.user) await saveLoginEvent(loginEventFor(userFromProfile(result.user)));
-      }).catch(() => {});
-      auth.onAuthStateChanged(async profile => {
-        if (!profile?.email) {
-          clearSession();
-          renderAuth(null);
-          return;
-        }
-        const user = userFromProfile(profile);
-        renderAuth(user);
-        await startSession(user);
-        await loadCatalog();
-      });
     }
 
     function esc(s) {
