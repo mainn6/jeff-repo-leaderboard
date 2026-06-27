@@ -475,6 +475,28 @@
       font-weight: 800;
       text-decoration: none;
     }
+    .lang-toggle {
+      display: inline-flex;
+      overflow: hidden;
+      border: 2px solid var(--line);
+      border-radius: 6px;
+      background: var(--paper);
+    }
+    .lang-choice {
+      min-height: 40px;
+      padding: 0 10px;
+      border: 0;
+      border-right: 2px solid var(--line);
+      background: transparent;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .lang-choice:last-child { border-right: 0; }
+    .lang-choice.active {
+      background: var(--line);
+      color: var(--paper);
+    }
     body.auth-required .app {
       min-height: 100dvh;
       display: grid;
@@ -497,6 +519,8 @@
       width: 100%;
       justify-content: flex-start;
     }
+    body.auth-required .lang-toggle { width: 100%; }
+    body.auth-required .lang-choice { flex: 1; }
     body.auth-required #googleSignIn,
     body.auth-required #googleSignIn .auth-button { width: 100%; }
     body.auth-required .hero,
@@ -538,16 +562,20 @@
   <main class="app">
     <section class="auth-strip" aria-label="Google email login">
       <div class="auth-copy">
-        <span>Email access</span>
-        <strong id="authStatus">Sign in with your Google email.</strong>
-        <p class="auth-note">실제 사용해보고 유용한 깃허브 레포 모음집</p>
-        <small class="source-note">Source: GitHub public repositories</small>
+        <span data-i18n="auth.label">Email access</span>
+        <strong id="authStatus">Google 이메일로 로그인하세요.</strong>
+        <p class="auth-note" data-i18n="auth.note">실제 사용해보고 유용한 깃허브 레포 모음집</p>
+        <small class="source-note" data-i18n="source.note">출처: GitHub public repositories</small>
       </div>
       <div class="auth-actions">
+        <div class="lang-toggle" aria-label="Language">
+          <button class="lang-choice" type="button" data-lang="ko">KR</button>
+          <button class="lang-choice" type="button" data-lang="en">EN</button>
+        </div>
         <div class="auth-user" id="authUser" hidden></div>
         <div id="googleSignIn"></div>
-        <a class="auth-button" id="dashboardLink" href="./dashboard.html" hidden>Dashboard</a>
-        <button class="auth-button" id="signOut" type="button" hidden>Sign out</button>
+        <a class="auth-button" id="dashboardLink" href="./dashboard.html" hidden data-i18n="nav.dashboard">Dashboard</a>
+        <button class="auth-button" id="signOut" type="button" hidden data-i18n="auth.signOut">Sign out</button>
       </div>
     </section>
 
@@ -556,7 +584,7 @@
         <div class="brandline"><span class="mark" aria-hidden="true"></span> JEFF repo catalog</div>
         <div>
           <h1>Repo Leaderboard</h1>
-          <p>카테고리별 GitHub 저장소를 stars 기준으로 정렬하고, 출처·활성도·공개 여부 같은 확인 가능한 신뢰 태그를 함께 봅니다.</p>
+          <p data-i18n="hero.copy">카테고리별 GitHub 저장소를 stars 기준으로 정렬하고, 출처·활성도·공개 여부 같은 확인 가능한 신뢰 태그를 함께 봅니다.</p>
         </div>
       </section>
       <section class="metrics" aria-label="Repository summary">
@@ -568,18 +596,18 @@
     </header>
 
     <section class="controls" aria-label="Leaderboard filters">
-      <label class="field"><span>Search</span><input id="search" placeholder="repo, category, use case..." /></label>
-      <label class="field"><span>Category</span><select id="categorySelect"></select></label>
-      <label class="field"><span>Sort</span><select id="sortSelect"><option value="stars">Stars</option><option value="recent">Recently updated</option><option value="sources">Source-backed</option><option value="forks">Forks</option></select></label>
-      <label class="field"><span>Trust tag</span><select id="tagSelect"><option value="all">All repos</option><option value="trusted">Trusted tags</option><option value="fresh">Fresh</option><option value="backed">Source-backed</option><option value="installed">Installed</option><option value="issue">Metadata issue</option></select></label>
+      <label class="field"><span data-i18n="search.label">Search</span><input id="search" placeholder="repo, category, use case..." data-i18n-placeholder="search.placeholder" /></label>
+      <label class="field"><span data-i18n="category.label">Category</span><select id="categorySelect"></select></label>
+      <label class="field"><span data-i18n="sort.label">Sort</span><select id="sortSelect"><option value="stars" data-i18n="sort.stars">Stars</option><option value="recent" data-i18n="sort.recent">Recently updated</option><option value="sources" data-i18n="sort.sources">Source-backed</option><option value="forks" data-i18n="sort.forks">Forks</option></select></label>
+      <label class="field"><span data-i18n="tag.label">Trust tag</span><select id="tagSelect"><option value="all" data-i18n="tag.all">All repos</option><option value="trusted" data-i18n="tag.trusted">Trusted tags</option><option value="fresh" data-i18n="tag.fresh">Fresh</option><option value="backed" data-i18n="tag.backed">Source-backed</option><option value="installed" data-i18n="tag.installed">Installed</option><option value="issue" data-i18n="tag.issue">Metadata issue</option></select></label>
     </section>
 
     <section class="layout">
       <aside class="sidebar">
-        <h2>Categories</h2>
-        <p>카테고리를 누르면 해당 그룹의 전체 순위만 봅니다.</p>
+        <h2 data-i18n="sidebar.title">Categories</h2>
+        <p data-i18n="sidebar.copy">카테고리를 누르면 해당 그룹의 전체 순위만 봅니다.</p>
         <div class="cat-list" id="categoryList"></div>
-        <p class="notice">License 필드는 현재 카탈로그에 없습니다. MIT는 데이터에 명시된 경우에만 “MIT mentioned”로 표시합니다.</p>
+        <p class="notice" data-i18n="sidebar.notice">License 필드는 현재 카탈로그에 없습니다. MIT는 데이터에 명시된 경우에만 “MIT mentioned”로 표시합니다.</p>
       </aside>
       <section class="board">
         <div class="board-head">
@@ -611,6 +639,108 @@
     const accents = ['#ffdc4a', '#b9e9ff', '#c6f6d5', '#ffc1b6', '#d9c4ff', '#bdf06f', '#ffd29a', '#9ee7de', '#ffb7d5', '#d7d7d7'];
     const compact = { value: true };
     let activeCategory = 'All';
+    let activeUser = null;
+    let currentLang = localStorage.getItem('repoCatalogLang') || 'ko';
+    const copy = {
+      ko: {
+        'auth.label': 'Email access',
+        'auth.note': '실제 사용해보고 유용한 깃허브 레포 모음집',
+        'auth.signIn': 'Google 이메일로 로그인하세요.',
+        'auth.signedIn': '로그인됨:',
+        'auth.config': 'Google OAuth client ID가 필요합니다.',
+        'auth.loading': 'Firebase Auth 로딩 중입니다. 다시 시도하세요.',
+        'auth.opening': 'Google 로그인 여는 중...',
+        'auth.closed': 'Google 로그인이 닫혔습니다.',
+        'auth.failed': 'Google 로그인 실패. 다시 시도하세요.',
+        'auth.catalogFailed': '로그인은 됐지만 repo catalog를 불러오지 못했습니다.',
+        'auth.signOut': 'Sign out',
+        'auth.google': 'Google 로그인',
+        'source.note': '출처: GitHub public repositories',
+        'nav.dashboard': 'Dashboard',
+        'hero.copy': '카테고리별 GitHub 저장소를 stars 기준으로 정렬하고, 출처·활성도·공개 여부 같은 확인 가능한 신뢰 태그를 함께 봅니다.',
+        'search.label': 'Search',
+        'search.placeholder': 'repo, category, use case...',
+        'category.label': 'Category',
+        'category.all': 'All categories',
+        'sort.label': 'Sort',
+        'sort.stars': 'Stars',
+        'sort.recent': 'Recently updated',
+        'sort.sources': 'Source-backed',
+        'sort.forks': 'Forks',
+        'tag.label': 'Trust tag',
+        'tag.all': 'All repos',
+        'tag.trusted': 'Trusted tags',
+        'tag.fresh': 'Fresh',
+        'tag.backed': 'Source-backed',
+        'tag.installed': 'Installed',
+        'tag.issue': 'Metadata issue',
+        'sidebar.title': 'Categories',
+        'sidebar.copy': '카테고리를 누르면 해당 그룹의 전체 순위만 봅니다.',
+        'sidebar.notice': 'License 필드는 현재 카탈로그에 없습니다. MIT는 데이터에 명시된 경우에만 “MIT mentioned”로 표시합니다.',
+        'board.allSub': '각 카테고리의 상위 레포를 별점 순으로 보여줍니다.',
+        'board.categorySub': '이 카테고리 안에서 별점 기준 순위를 봅니다.',
+        'board.showAll': 'Show all',
+        'board.top5': 'Top 5',
+        'board.empty': '필터에 맞는 레포가 없습니다.',
+        'board.loading': 'Repo catalog 로딩 중...',
+        'board.loadFailed': 'Repo catalog 로드 실패. 새로고침하거나 다시 로그인하세요.',
+        'repo.count': 'repos',
+        'repo.open': 'Open GitHub',
+        'repo.forks': 'forks',
+        'repo.noDate': 'no date',
+        'repo.noDesc': '설명이 저장되지 않았습니다.',
+        'none': 'none'
+      },
+      en: {
+        'auth.label': 'Email access',
+        'auth.note': 'A handpicked list of GitHub repos I have actually used and found useful.',
+        'auth.signIn': 'Sign in with your Google email.',
+        'auth.signedIn': 'Signed in as',
+        'auth.config': 'Google OAuth client ID needed.',
+        'auth.loading': 'Firebase Auth is still loading. Try again.',
+        'auth.opening': 'Opening Google sign-in...',
+        'auth.closed': 'Google sign-in was closed.',
+        'auth.failed': 'Google sign-in failed. Try again.',
+        'auth.catalogFailed': 'Signed in, but repo catalog failed to load.',
+        'auth.signOut': 'Sign out',
+        'auth.google': 'Continue with Google',
+        'source.note': 'Source: GitHub public repositories',
+        'nav.dashboard': 'Dashboard',
+        'hero.copy': 'GitHub repos ranked by stars with source, freshness, and public-status trust tags.',
+        'search.label': 'Search',
+        'search.placeholder': 'repo, category, use case...',
+        'category.label': 'Category',
+        'category.all': 'All categories',
+        'sort.label': 'Sort',
+        'sort.stars': 'Stars',
+        'sort.recent': 'Recently updated',
+        'sort.sources': 'Source-backed',
+        'sort.forks': 'Forks',
+        'tag.label': 'Trust tag',
+        'tag.all': 'All repos',
+        'tag.trusted': 'Trusted tags',
+        'tag.fresh': 'Fresh',
+        'tag.backed': 'Source-backed',
+        'tag.installed': 'Installed',
+        'tag.issue': 'Metadata issue',
+        'sidebar.title': 'Categories',
+        'sidebar.copy': 'Pick a category to see that group only.',
+        'sidebar.notice': 'License data is not stored in this catalog. MIT is shown only when the data mentions it.',
+        'board.allSub': 'Top repos in each category, sorted by stars.',
+        'board.categorySub': 'Repos in this category, sorted by stars.',
+        'board.showAll': 'Show all',
+        'board.top5': 'Top 5',
+        'board.empty': 'No repos match this filter.',
+        'board.loading': 'Loading repo catalog...',
+        'board.loadFailed': 'Repo catalog load failed. Refresh or sign in again.',
+        'repo.count': 'repos',
+        'repo.open': 'Open GitHub',
+        'repo.forks': 'forks',
+        'repo.noDate': 'no date',
+        'repo.noDesc': 'No description saved yet.',
+        'none': 'none'
+      }
+    };
 
     const els = {
       search: document.getElementById('search'),
@@ -627,11 +757,39 @@
       googleSignIn: document.getElementById('googleSignIn'),
       dashboardLink: document.getElementById('dashboardLink'),
       signOut: document.getElementById('signOut'),
+      langButtons: [...document.querySelectorAll('.lang-choice')],
       repoCount: document.getElementById('repoCount'),
       categoryCount: document.getElementById('categoryCount'),
       visibleCount: document.getElementById('visibleCount'),
       backedCount: document.getElementById('backedCount')
     };
+
+    function t(key) {
+      return copy[currentLang]?.[key] || copy.ko[key] || key;
+    }
+    function applyLanguage() {
+      document.documentElement.lang = currentLang;
+      document.querySelectorAll('[data-i18n]').forEach(node => {
+        node.textContent = t(node.dataset.i18n);
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(node => {
+        node.placeholder = t(node.dataset.i18nPlaceholder);
+      });
+      els.langButtons.forEach(button => {
+        const active = button.dataset.lang === currentLang;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+    }
+    function setLanguage(lang) {
+      if (!copy[lang]) return;
+      currentLang = lang;
+      localStorage.setItem('repoCatalogLang', lang);
+      applyLanguage();
+      renderAuth(activeUser);
+      renderGoogleButton();
+      renderBoard();
+    }
 
     function googleClientConfigured() {
       return GOOGLE_CLIENT_ID &&
@@ -693,7 +851,7 @@
       if (catalogLoaded) return;
       const db = firebaseDb();
       if (!db) return;
-      els.leaderboard.innerHTML = '<div class="empty-state">Loading repo catalog...</div>';
+      els.leaderboard.innerHTML = `<div class="empty-state">${esc(t('board.loading'))}</div>`;
       try {
         const snap = await db.collection('repoCatalog').doc('current').get();
         if (!snap.exists) throw new Error('Repo catalog document is missing.');
@@ -705,12 +863,13 @@
         renderBoard();
       } catch (error) {
         console.warn('Repo catalog load failed', error);
-        els.authStatus.textContent = 'Signed in, but repo catalog failed to load.';
-        els.leaderboard.innerHTML = '<div class="empty-state">Repo catalog load failed. Refresh or sign in again.</div>';
+        els.authStatus.textContent = t('auth.catalogFailed');
+        els.leaderboard.innerHTML = `<div class="empty-state">${esc(t('board.loadFailed'))}</div>`;
       }
     }
     function renderAuth(user) {
       if (!els.authStatus) return;
+      activeUser = user || null;
       const configured = googleClientConfigured();
       document.body.classList.toggle('auth-required', !user?.email);
       els.googleSignIn.hidden = !configured || Boolean(user?.email);
@@ -718,28 +877,28 @@
       els.authUser.hidden = !user?.email;
       els.dashboardLink.hidden = user?.email !== DASHBOARD_ADMIN_EMAIL;
       if (!configured) {
-        els.authStatus.textContent = 'Google OAuth client ID needed. Replace GOOGLE_CLIENT_ID in this file.';
+        els.authStatus.textContent = t('auth.config');
         els.googleSignIn.innerHTML = '';
         return;
       }
       if (user?.email) {
-        els.authStatus.textContent = `Signed in as ${user.email}`;
+        els.authStatus.textContent = `${t('auth.signedIn')} ${user.email}`;
         els.authUser.innerHTML = `${user.picture ? `<img src="${esc(user.picture)}" alt="">` : ''}<span>${esc(user.name || user.email)}</span>`;
         els.googleSignIn.innerHTML = '';
         return;
       }
-      els.authStatus.textContent = 'Sign in with your Google email.';
+      els.authStatus.textContent = t('auth.signIn');
       els.authUser.innerHTML = '';
     }
     async function signInWithGoogle() {
       if (location.protocol === 'file:') { location.href = 'https://mainn6.github.io/jeff-repo-leaderboard/'; return; }
       const auth = firebaseAuth();
       if (!auth) {
-        els.authStatus.textContent = 'Firebase Auth is still loading. Try again.';
+        els.authStatus.textContent = t('auth.loading');
         return;
       }
       try {
-        els.authStatus.textContent = 'Opening Google sign-in...';
+        els.authStatus.textContent = t('auth.opening');
         const provider = new window.firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
         const result = await auth.signInWithPopup(provider);
@@ -749,13 +908,13 @@
         await loadCatalog();
       } catch (error) {
         els.authStatus.textContent = error?.code === 'auth/popup-closed-by-user'
-          ? 'Google sign-in was closed.'
-          : 'Google sign-in failed. Try again.';
+          ? t('auth.closed')
+          : t('auth.failed');
       }
     }
     function renderGoogleButton() {
       if (!googleClientConfigured() || !document.body.classList.contains('auth-required')) return;
-      els.googleSignIn.innerHTML = '<button class="auth-button" type="button">Continue with Google</button>';
+      els.googleSignIn.innerHTML = `<button class="auth-button" type="button">${esc(t('auth.google'))}</button>`;
       els.googleSignIn.querySelector('button').addEventListener('click', signInWithGoogle);
     }
     function initAuth() {
@@ -791,7 +950,7 @@
       return `--accent:${accentFor(category)}`;
     }
     function categoryLabel(category) {
-      return category;
+      return category === 'All' ? t('category.all') : category;
     }
     function stars(item) { return Number(item.stars || 0); }
     function forks(item) { return Number(item.forks || 0); }
@@ -859,7 +1018,7 @@
       return {
         count: list.length,
         backed: list.filter(sourceBacked).length,
-        top: sorted[0]?.name || 'none',
+        top: sorted[0]?.name || t('none'),
         stars: list.reduce((sum, item) => sum + stars(item), 0)
       };
     }
@@ -885,7 +1044,7 @@
       els.backedCount.textContent = ITEMS.filter(sourceBacked).length;
     }
     function rowTemplate(item, rank, index) {
-      const desc = cleanText(item.readmeSummary || item.githubDescription || item.plainDescription || item.description || '설명이 저장되지 않았습니다.');
+      const desc = cleanText(item.readmeSummary || item.githubDescription || item.plainDescription || item.description || t('repo.noDesc'));
       const badgeHtml = badgesFor(item).map(([label, cls]) => `<span class="badge ${cls}">${esc(label)}</span>`).join('');
       return `<article class="repo-row" style="--i:${index};${accentStyle(item.category)}">
         <div class="rank">${rank}</div>
@@ -896,8 +1055,8 @@
         </div>
         <div class="repo-stats">
           <div class="stars">${esc(item.starsLabel || String(stars(item)))}</div>
-          <div class="repo-meta"><span>${esc(item.forks ?? 'n/a')} forks</span><span>${esc(item.pushedAt || 'no date')}</span></div>
-          <a class="open-link" href="${esc(item.url)}" target="_blank" rel="noreferrer">Open GitHub</a>
+          <div class="repo-meta"><span>${esc(item.forks ?? 'n/a')} ${esc(t('repo.forks'))}</span><span>${esc(item.pushedAt || t('repo.noDate'))}</span></div>
+          <a class="open-link" href="${esc(item.url)}" target="_blank" rel="noreferrer">${esc(t('repo.open'))}</a>
         </div>
       </article>`;
     }
@@ -909,17 +1068,17 @@
         if (!rows.length) return '';
         const shown = compact.value && activeCategory === 'All' ? rows.slice(0, 5) : rows;
         return `<section class="category-section" style="${accentStyle(cat)}">
-          <div class="section-title"><h3>${esc(categoryLabel(cat))}</h3><span>${rows.length} repos</span></div>
+          <div class="section-title"><h3>${esc(categoryLabel(cat))}</h3><span>${rows.length} ${esc(t('repo.count'))}</span></div>
           <div class="repo-list">${shown.map((item, index) => rowTemplate(item, index + 1, index)).join('')}</div>
         </section>`;
       }).filter(Boolean);
-      els.boardTitle.textContent = activeCategory === 'All' ? 'All categories' : categoryLabel(activeCategory);
+      els.boardTitle.textContent = activeCategory === 'All' ? t('category.all') : categoryLabel(activeCategory);
       els.boardSub.textContent = activeCategory === 'All'
-        ? '각 카테고리의 상위 레포를 별점 순으로 보여줍니다.'
-        : '이 카테고리 안에서 별점 기준 순위를 봅니다.';
-      els.toggleDepth.textContent = compact.value && activeCategory === 'All' ? 'Show all' : 'Top 5';
+        ? t('board.allSub')
+        : t('board.categorySub');
+      els.toggleDepth.textContent = compact.value && activeCategory === 'All' ? t('board.showAll') : t('board.top5');
       els.toggleDepth.hidden = activeCategory !== 'All';
-      els.leaderboard.innerHTML = sections.length ? sections.join('') : '<div class="empty-state">필터에 맞는 레포가 없습니다.</div>';
+      els.leaderboard.innerHTML = sections.length ? sections.join('') : `<div class="empty-state">${esc(t('board.empty'))}</div>`;
       renderMetrics(visible);
       renderCategoryControls();
     }
@@ -934,12 +1093,16 @@
     els.sortSelect.addEventListener('change', renderBoard);
     els.tagSelect.addEventListener('change', renderBoard);
     els.toggleDepth.addEventListener('click', () => { compact.value = !compact.value; renderBoard(); });
+    els.langButtons.forEach(button => {
+      button.addEventListener('click', () => setLanguage(button.dataset.lang));
+    });
     els.signOut.addEventListener('click', async () => {
       try { await firebaseAuth()?.signOut(); } catch {}
       renderAuth(null);
       clearCatalog();
       renderGoogleButton();
     });
+    applyLanguage();
     initAuth();
     renderCategoryControls();
     renderBoard();
