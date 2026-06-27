@@ -1112,7 +1112,9 @@
     }
     function rowTemplate(item, rank, index) {
       const repoUrl = safeGithubUrl(item.url);
-      const desc = cleanText(item.readmeSummary || item.githubDescription || item.plainDescription || item.description || t('repo.noDesc'));
+      const enDesc = item.githubDescription || item.plainDescription || item.description;
+      const localized = currentLang === 'ko' ? (item.descriptionKo || enDesc) : enDesc;
+      const desc = cleanText(localized || t('repo.noDesc'));
       const badgeHtml = badgesFor(item).map(([label, cls]) => `<span class="badge ${cls}">${esc(label)}</span>`).join('');
       return `<article class="repo-row" style="--i:${index};${accentStyle(item.category)}">
         <div class="rank">${rank}</div>
