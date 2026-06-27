@@ -603,7 +603,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
-<body class="auth-required">
+<body>
   <main class="app">
     <section class="auth-strip" aria-label="Repo catalog access">
       <div class="auth-copy">
@@ -689,7 +689,7 @@
       ko: {
         'auth.label': 'Access',
         'auth.note': '실제 사용해보고 유용한 깃허브 레포 모음집',
-        'auth.signIn': 'Google 로그인 후 repo leaderboard를 볼 수 있습니다.',
+        'auth.signIn': 'JEFF가 실제로 써본 GitHub repo 모음 · 로그인은 선택(관리자용)',
         'auth.signedIn': '로그인됨:',
         'auth.google': 'Google 로그인',
         'auth.signOut': 'Sign out',
@@ -737,7 +737,7 @@
       en: {
         'auth.label': 'Access',
         'auth.note': 'A handpicked list of GitHub repos I have actually used and found useful.',
-        'auth.signIn': 'Sign in with Google to view the repo leaderboard.',
+        'auth.signIn': 'A handpicked list of GitHub repos JEFF actually uses · sign-in optional (admin).',
         'auth.signedIn': 'Signed in as',
         'auth.google': 'Continue with Google',
         'auth.signOut': 'Sign out',
@@ -956,7 +956,7 @@
     }
     function renderAuth(user) {
       if (!els.authStatus) return;
-      document.body.classList.toggle('auth-required', !user?.email);
+      document.body.classList.remove('auth-required');
       els.authStatus.textContent = user?.email ? `${t('auth.signedIn')} ${user.email}` : t('auth.signIn');
       els.authUser.hidden = !user?.email;
       els.signOut.hidden = !user?.email;
@@ -992,13 +992,23 @@
         await startSession(user);
         await loadCatalog();
       } catch (error) {
-        els.authStatus.textContent = error?.code === 'auth/popup-closed-by-user'
-          ? t('auth.closed')
+        const code = error?.code || '';
+        if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+          els.authStatus.textContent = t('auth.closed');
+          return;
+        }
+        // Popup unsupported/blocked (some mobile browsers) → fall back to redirect.
+        if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+          try { await auth.signInWithRedirect(provider); return; } catch (e) {}
+        }
+        els.authStatus.textContent = code === 'auth/unauthorized-domain'
+          ? `${location.hostname} is not authorized in Firebase Auth.`
           : t('auth.failed');
       }
     }
     function initApp() {
       renderAuth(null);
+      loadCatalog();
       const auth = firebaseAuth();
       if (!auth) return;
       auth.getRedirectResult().then(async result => {
