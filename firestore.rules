@@ -6,6 +6,26 @@ service cloud.firestore {
         && request.auth.token.email == 'jeffk.lockedin@gmail.com';
     }
 
+    function validLoginEvent() {
+      return request.resource.data.keys().hasOnly([
+          'email', 'name', 'picture', 'signedInAt', 'page', 'referrer', 'createdAt'
+        ])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 320
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.picture is string
+        && request.resource.data.picture.size() <= 500
+        && request.resource.data.signedInAt is string
+        && request.resource.data.signedInAt.size() <= 40
+        && request.resource.data.page is string
+        && request.resource.data.page.size() <= 500
+        && request.resource.data.referrer is string
+        && request.resource.data.referrer.size() <= 500
+        && request.resource.data.createdAt == request.time;
+    }
+
     match /admin/{email} {
       allow read: if request.auth != null && request.auth.token.email == email;
       allow write: if false;
@@ -17,8 +37,7 @@ service cloud.firestore {
     }
 
     match /loginEvents/{eventId} {
-      allow create: if request.auth != null
-        && request.resource.data.email == request.auth.token.email;
+      allow create: if request.auth != null && validLoginEvent();
       allow read: if isAdmin();
       allow update, delete: if false;
     }

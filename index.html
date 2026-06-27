@@ -588,6 +588,7 @@
       appId: '1:171338423650:web:e80fe23c8da618b60da03b',
       measurementId: 'G-WBY1FX730M'
     };
+    const DASHBOARD_ADMIN_EMAIL = 'jeffk.lockedin@gmail.com';
     const LOGIN_EVENTS_STORAGE_KEY = 'jeffRepoLoginEvents';
     // ponytail: static GitHub Pages cannot save server-side; set this to a tiny collector URL when ready.
     const USER_DATA_ENDPOINT = '';
@@ -729,7 +730,7 @@
       els.googleSignIn.hidden = !configured || Boolean(user?.email);
       els.signOut.hidden = !user?.email;
       els.authUser.hidden = !user?.email;
-      els.dashboardLink.hidden = !user?.email;
+      els.dashboardLink.hidden = user?.email !== DASHBOARD_ADMIN_EMAIL;
       if (!configured) {
         els.authStatus.textContent = 'Google OAuth client ID needed. Replace GOOGLE_CLIENT_ID in this file.';
         els.googleSignIn.innerHTML = '';
